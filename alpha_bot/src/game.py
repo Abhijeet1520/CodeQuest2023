@@ -28,6 +28,10 @@ class Game:
 
         # self.current_destination = [mid_x,mid_y] #TODO
 
+        self.tick_counter = 0
+        self.change_tick_count = random.randint(10, 200)
+        self.waiting = False
+
 
         next_init_message = comms.read_message()
         while next_init_message != comms.END_INIT_SIGNAL:
@@ -147,10 +151,12 @@ class Game:
         dy = enemy_tank_pos[1] - our_tank_pos[1]
         return math.degrees(math.atan2(dy, dx))
     
+    
     def respond_to_turn(self):
         """
         This is where you should write your bot code to process the data and respond to the game.
         """
+        message = {}
 
         # Get all power-ups
         powerups = []
@@ -166,43 +172,43 @@ class Game:
         enemy_tank = self.objects[self.enemy_tank_id]
         enemy_tank_pos = enemy_tank["position"]
 
-        if powerups:
-            # If there are power-ups, move towards the nearest one
-            # nearest_power_up_id = self.get_nearest_object(ObjectTypes.POWERUP.value)
-            nearest_power_up = powerups[0]["position"]
-            comms.post_message({
-                "path": nearest_power_up,
-                "shoot": self.get_angle(enemy_tank_pos, our_tank_pos)
-            })
 
-            # # If the path to the power-up is clear, move towards it
-            # if self.is_path_clear(nearest_power_up):
-            #     comms.post_message({
-            #         "path": nearest_power_up
-            #     })
-            # else:
-            #     # If the path is not clear, find the nearest TANK and shoot at it
-            #     nearest_wall_id = self.get_nearest_object(ObjectTypes.TANK.value)
-            #     nearest_wall = self.objects[nearest_wall_id]
-            #     comms.post_message({
-            #         "path": nearest_power_up,
-            #         "shoot": self.shoot_at(nearest_wall)
-            #     })
-        else:
-            # If there are no power-ups, move towards the enemy tank and shoot at it
-            if self.calculate_distance(our_tank_pos, enemy_tank_pos) > 10:
-                comms.post_message({
-                    "path": enemy_tank_pos,
-                    "shoot": self.get_angle(enemy_tank_pos, our_tank_pos)
-                })
+        if not self.waiting:
+            # if self.tick_counter >= self.change_tick_count:
+            #     face_angle = self.get_angle(enemy_tank_pos, our_tank_pos)
+            #     change_dir = random.choice((face_angle + 90, face_angle - 90))
+
+            #     message["move"] = change_dir
+
+
+            if powerups:
+                # If there are power-ups, move towards the nearest one
+                # nearest_power_up_id = self.get_nearest_object(ObjectTypes.POWERUP.value)
+                nearest_power_up = powerups[0]["position"]
+                message["path"] = nearest_power_up                
+
+                # # If the path to the power-up is clear, move towards it
+                # if self.is_path_clear(nearest_power_up):
+                #     comms.post_message({
+                #         "path": nearest_power_up
+                #     })
+                # else:
+                #     # If the path is not clear, find the nearest TANK and shoot at it
+                #     nearest_wall_id = self.get_nearest_object(ObjectTypes.TANK.value)
+                #     nearest_wall = self.objects[nearest_wall_id]
+                #     comms.post_message({
+                #         "path": nearest_power_up,
+                #         "shoot": self.shoot_at(nearest_wall)
+                #     })
             else:
-                # If we are within a distance of 10 from the enemy, start circling around the enemy
-                # and predicting its position to shoot
-                comms.post_message({
-                    "path": [enemy_tank_pos[0] + random.randint(-10,10), enemy_tank_pos[1] + random.randint(-10,10)],
-                    "shoot": self.get_angle(enemy_tank_pos, our_tank_pos)
-                })
-
-        
-
-        
+                # If there are no power-ups, move towards the enemy tank and shoot at it
+                if self.calculate_distance(our_tank_pos, enemy_tank_pos) > 10:
+                    message["path"] = enemy_tank_pos
+                    
+                else:
+                    # If we are within a distance of 10 from the enemy, start circling around the enemy
+                    # and predicting its position to shoot
+                    message["path"] = [enemy_tank_pos[0] + random.randint(-10,10), enemy_tank_pos[1] + random.randint(-10,10)]
+                    
+        message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
+        comms.post_message(message)
