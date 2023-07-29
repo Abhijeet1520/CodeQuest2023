@@ -201,6 +201,34 @@ class Game:
                 bound = boundary
         return bound
     
+    def calculate_boundary(self):
+        boundaries = [obj for obj in self.objects.values() if obj["type"] == ObjectTypes.CLOSING_BOUNDARY.value]
+        if not boundaries:
+            return None, None
+
+        max_x = max(obj["position"][0][0] for obj in boundaries)
+        max_y = max(obj["position"][0][1] for obj in boundaries)
+        min_x = min(obj["position"][0][0] for obj in boundaries)
+        min_y = min(obj["position"][0][1] for obj in boundaries)
+
+        return (min_x, min_y), (max_x, max_y)
+
+    def position_to_boundary(self, position):
+        return min(
+            self.calculate_distance(position, (x, y))
+            for (x, y) in self.calculate_boundary()
+        )
+
+    def is_reachable(self, position):
+        player_velocity = 100
+        boundary_velocity = 10
+
+        player_to_position = self.calculate_distance(self.objects[self.tank_id]["position"], position)
+        position_to_boundary = self.position_to_boundary(position)
+        time_for_player = player_to_position / player_velocity
+        time_for_boundary = position_to_boundary / boundary_velocity
+
+        return time_for_player < time_for_boundary
     
     def respond_to_turn(self):
         """
@@ -227,7 +255,7 @@ class Game:
             if game_object["type"] == ObjectTypes.POWERUP.value:
                 powerups.append(game_object)
         for powerup in powerups:
-            if (powerup["position"][0] < closing_boundaries[0][0][0]) or (powerup["position"][0] < closing_boundaries[0][1][0]) or (powerup["position"][0] > closing_boundaries[0][2][0]) or (powerup["position"][0] > closing_boundaries[0][3][0]) or (powerup["position"][1] > closing_boundaries[0][0][1]) or (powerup["position"][1] < closing_boundaries[0][1][1]) or (powerup["position"][1] < closing_boundaries[0][2][1]) or (powerup["position"][1] > closing_boundaries[0][3][1]):
+            if (powerup["position"][0] < closing_boundaries[0][0][0]) or (powerup["position"][0] < closing_boundaries[0][1][0]) or (powerup["position"][0] > closing_boundaries[0][2][0]) or (powerup["position"][0] > closing_boundaries[0][3][0]) or (powerup["position"][1] > closing_boundaries[0][0][1]) or (powerup["position"][1] < closing_boundaries[0][1][1]) or (powerup["position"][1] < closing_boundaries[0][2][1]) or (powerup["position"][1] > closing_boundaries[0][3][1]) or not (self.is_reachable(powerup["position"])):
                 powerups.remove(powerup)
         print('powerups - ',powerups,file=sys.stderr)
         # print(powerups,file=sys.stderr)
