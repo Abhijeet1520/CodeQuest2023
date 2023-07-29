@@ -250,7 +250,7 @@ class Game:
         powerups = []
         for game_object in self.objects.values():
             if game_object["type"] == ObjectTypes.POWERUP.value:
-                if self.check_within_boundary(powerup["position"]) and self.is_reachable(powerup["position"]):
+                if self.check_within_boundary(game_object["position"]) and self.is_reachable(game_object["position"]):
                     powerups.append(game_object)
         print('powerups - ',powerups,file=sys.stderr)
         # print(powerups,file=sys.stderr)
