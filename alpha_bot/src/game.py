@@ -153,10 +153,10 @@ class Game:
     
 
     # Swap between waiting and not waiting mode
-    def swap_waiting(self):
+    def swap_waiting(self, time: int = 2):
         self.waiting = not self.waiting
         self.tick_counter = 0
-        self.change_tick_count = 2 if self.waiting else 5
+        self.change_tick_count = time if self.waiting else 5
 
     
     # Check if point is between tanks
@@ -226,6 +226,10 @@ class Game:
         for game_object in self.objects.values():
             if game_object["type"] == ObjectTypes.POWERUP.value:
                 powerups.append(game_object)
+        for powerup in powerups:
+            if (powerup["position"][0] < closing_boundaries[0][0][0]) or (powerup["position"][0] < closing_boundaries[0][1][0]) or (powerup["position"][0] > closing_boundaries[0][2][0]) or (powerup["position"][0] > closing_boundaries[0][3][0]) or (powerup["position"][1] > closing_boundaries[0][0][1]) or (powerup["position"][1] < closing_boundaries[0][1][1]) or (powerup["position"][1] < closing_boundaries[0][2][1]) or (powerup["position"][1] > closing_boundaries[0][3][1]):
+                powerups.remove(powerup)
+        print('powerups - ',powerups,file=sys.stderr)
         # print(powerups,file=sys.stderr)
 
         # Get our tank's position
@@ -243,9 +247,10 @@ class Game:
             new_angle = self.get_angle(closing_boundary_pos, our_tank_pos) + random.randint(165, 195)
             if new_angle > 360:
                 new_angle = new_angle - 360
-            message["move"] = new_angle
+            message["path"] = [870, 400]
             message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
             print("close to boundary",file=sys.stderr)
+            self.swap_waiting(4)
 
         elif not self.waiting:
             # print(self.tick_counter, self.change_tick_count, file=sys.stderr)
