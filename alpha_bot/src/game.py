@@ -163,9 +163,8 @@ class Game:
     def is_between(self, point: list, tank1_pos: list, tank2_pos: list) -> bool:
         total = int(self.calculate_distance(tank1_pos, tank2_pos))
         dist = total - int((self.calculate_distance(point, tank1_pos) + self.calculate_distance(point, tank2_pos)))
-        if dist == 0:
-            return True
-        
+        return dist == 0
+    
         # for i in range(9):
         #     for j in range(9):
         #         dist = total - int((self.calculate_distance([point[0]+i, point[1]+j], tank1_pos) + self.calculate_distance([point[0]+i, point[1]+j], tank2_pos)))
@@ -183,7 +182,7 @@ class Game:
         #         if dist == 0:
         #             return True
         
-        return False
+        
       
     
     
@@ -267,7 +266,7 @@ class Game:
             
             # print(wall, file=sys.stderr)
             if self.is_between(wall["position"], enemy_tank_pos, our_tank_pos):
-                print("here3", file=sys.stderr)
+                # print("here3", file=sys.stderr)
                 safe_shoot = False
                 break
 
