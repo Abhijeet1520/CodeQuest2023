@@ -29,7 +29,7 @@ class Game:
         # self.current_destination = [mid_x,mid_y] #TODO
 
         self.tick_counter = 0
-        self.change_tick_count = random.randint(10, 200)
+        self.change_tick_count = 5
         self.waiting = False
 
 
@@ -89,7 +89,7 @@ class Game:
         # NOTE: you might want to do some additional logic here. For example check if a new bullet has been shot or a
         # new powerup is now spawned, etc.
         self.objects.update(self.current_turn_message["message"]["updated_objects"])
-        print(self.objects , file=sys.stderr)
+        # print(self.objects , file=sys.stderr)
 
         return True
 
@@ -151,6 +151,41 @@ class Game:
         dy = enemy_tank_pos[1] - our_tank_pos[1]
         return math.degrees(math.atan2(dy, dx))
     
+
+    # Swap between waiting and not waiting mode
+    def swap_waiting(self):
+        self.waiting = not self.waiting
+        self.tick_counter = 0
+        self.change_tick_count = 2 if self.waiting else 5
+
+    
+    # Check if point is between tanks
+    def is_between(self, point: list, tank1_pos: list, tank2_pos: list) -> bool:
+        total = self.calculate_distance(tank1_pos, tank2_pos)
+        dist = total - (self.calculate_distance(point, tank1_pos) + self.calculate_distance(point, tank2_pos))
+        if 0 <= dist <= 0.01:
+            return True
+        
+        for i in range(9):
+            for j in range(9):
+                dist = total - (self.calculate_distance([point[0]+i, point[1]+j], tank1_pos) + self.calculate_distance([point[0]+i, point[1]+j], tank2_pos))
+                if 0 <= dist <= 0.01:
+                    return True
+                dist = total - (self.calculate_distance([point[0]+i, point[1]-j], tank1_pos) + self.calculate_distance([point[0]+i, point[1]-j], tank2_pos))
+                if 0 <= dist <= 0.01:
+                    return True
+            
+            for j in range(9):
+                dist = total - (self.calculate_distance([point[0]-i, point[1]+j], tank1_pos) + self.calculate_distance([point[0]-i, point[1]+j], tank2_pos))
+                if 0 <= dist <= 0.01:
+                    return True
+                dist = total - (self.calculate_distance([point[0]-i, point[1]-j], tank1_pos) + self.calculate_distance([point[0]-i, point[1]-j], tank2_pos))
+                if 0 <= dist <= 0.01:
+                    return True
+        
+        return False
+      
+    
     
     def respond_to_turn(self):
         """
@@ -158,12 +193,18 @@ class Game:
         """
         message = {}
 
+        # Get all walls
+        walls = []
+        for game_object in self.objects.values():
+            if game_object["type"] == ObjectTypes.WALL.value:
+                walls.append(game_object)
+
         # Get all power-ups
         powerups = []
         for game_object in self.objects.values():
             if game_object["type"] == ObjectTypes.POWERUP.value:
                 powerups.append(game_object)
-        print(powerups,file=sys.stderr)
+        # print(powerups,file=sys.stderr)
         # Get our tank's position
         our_tank = self.objects[self.tank_id]
         our_tank_pos = our_tank["position"]
@@ -174,14 +215,18 @@ class Game:
 
 
         if not self.waiting:
-            # if self.tick_counter >= self.change_tick_count:
-            #     face_angle = self.get_angle(enemy_tank_pos, our_tank_pos)
-            #     change_dir = random.choice((face_angle + 90, face_angle - 90))
+            # print(self.tick_counter, self.change_tick_count, file=sys.stderr)
+            if self.tick_counter >= self.change_tick_count and not powerups:
+                # print("here", file=sys.stderr)
+                face_angle = self.get_angle(enemy_tank_pos, our_tank_pos)
+                change_dir = random.choice((face_angle + 45, face_angle - 45))
 
-            #     message["move"] = change_dir
+                message["move"] = change_dir
+
+                self.swap_waiting()
 
 
-            if powerups:
+            elif powerups:
                 # If there are power-ups, move towards the nearest one
                 # nearest_power_up_id = self.get_nearest_object(ObjectTypes.POWERUP.value)
                 nearest_power_up = powerups[0]["position"]
@@ -209,6 +254,23 @@ class Game:
                     # If we are within a distance of 10 from the enemy, start circling around the enemy
                     # and predicting its position to shoot
                     message["path"] = [enemy_tank_pos[0] + random.randint(-10,10), enemy_tank_pos[1] + random.randint(-10,10)]
-                    
-        message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
+        else:
+            # print(self.tick_counter, self.change_tick_count, file=sys.stderr)
+            if self.tick_counter >= self.change_tick_count:
+                # print("here2", file=sys.stderr)
+                self.swap_waiting()
+
+        self.tick_counter += 1
+
+        safe_shoot = True
+        # for wall in walls:
+        #     w = self.is_between(wall["position"], enemy_tank_pos, our_tank_pos)
+        #     print(wall,w, file=sys.stderr)
+        #     if w:
+        #         print("here3", file=sys.stderr)
+        #         safe_shoot = False
+        #         break
+
+        if safe_shoot: message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
+
         comms.post_message(message)
