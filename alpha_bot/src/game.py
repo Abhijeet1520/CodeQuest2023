@@ -246,13 +246,15 @@ class Game:
                 #     })
             else:
                 # If there are no power-ups, move towards the enemy tank and shoot at it
-                if self.calculate_distance(our_tank_pos, enemy_tank_pos) > 10:
+                if self.calculate_distance(our_tank_pos, enemy_tank_pos) > 100:
                     message["path"] = enemy_tank_pos
                     
                 else:
                     # If we are within a distance of 10 from the enemy, start circling around the enemy
                     # and predicting its position to shoot
-                    message["path"] = [enemy_tank_pos[0] + random.randint(-10,10), enemy_tank_pos[1] + random.randint(-10,10)]
+                    next_angle = self.get_angle(enemy_tank_pos, our_tank_pos) + 180 + random.randint(-90, 90)
+                    message["move"] = next_angle if next_angle < 360 else next_angle - 360
+                    self.swap_waiting()
         else:
             # print(self.tick_counter, self.change_tick_count, file=sys.stderr)
             if self.tick_counter >= self.change_tick_count:
