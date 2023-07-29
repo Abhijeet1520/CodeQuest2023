@@ -108,7 +108,6 @@ class Game:
         dy = enemy_tank_pos[1] - our_tank_pos[1]
         return (math.degrees(math.atan2(dy, dx)) + 360) % 360
 
-
     # Swap between waiting and not waiting mode
     def swap_waiting(self, time: int = 2):
         self.waiting = not self.waiting
@@ -147,7 +146,16 @@ class Game:
         else:
             return False
 
-    def get_closest_boundary(self,our_tank_pos,closing_boundaries):
+    # get closing boundary position
+    def get_closing_boundaries_positions(self):
+        closing_boundaries = []
+        for game_object in self.objects.values():
+            if game_object["type"] == ObjectTypes.CLOSING_BOUNDARY.value:
+                closing_boundaries.append(game_object['position'])
+        return closing_boundaries
+
+    def get_closest_boundary(self,our_tank_pos):
+        closing_boundaries = self.get_closing_boundaries_positions()
         print('passed - ',closing_boundaries[0][0],file=sys.stderr)
         # get the boundary to which the tank is closest
         bound = closing_boundaries[0][0]
@@ -173,7 +181,7 @@ class Game:
     def position_to_boundary(self, position):
         return min(
             self.calculate_distance(position, (x, y))
-            for (x, y) in self.calculate_boundary()
+            for (x, y) in self.get_closest_boundary()
         )
 
     def is_reachable(self, position):
@@ -182,6 +190,8 @@ class Game:
 
         player_to_position = self.calculate_distance(self.objects[self.tank_id]["position"], position)
         position_to_boundary = self.position_to_boundary(position)
+
+        # time to reach the position
         time_for_player = player_to_position / player_velocity
         time_for_boundary = position_to_boundary / boundary_velocity
 
@@ -199,8 +209,7 @@ class Game:
             if game_object["type"] == ObjectTypes.WALL.value:
                 walls.append(game_object)
 
-        # get closing boundary position
-        closing_boundaries = []
+        closing_boundaries = self.get_closing_boundaries_positions()
         for game_object in self.objects.values():
             if game_object["type"] == ObjectTypes.CLOSING_BOUNDARY.value:
                 closing_boundaries.append(game_object['position'])
@@ -251,10 +260,6 @@ class Game:
 
             elif powerups:
                 # If there are power-ups, move towards the nearest one
-                for powerup in powerups:
-                    if (powerup["position"][0] < closing_boundaries[0][0][0]) or (powerup["position"][0] < closing_boundaries[0][1][0]) or (powerup["position"][0] > closing_boundaries[0][2][0]) or (powerup["position"][0] > closing_boundaries[0][3][0]) or (powerup["position"][1] > closing_boundaries[0][0][1]) or (powerup["position"][1] < closing_boundaries[0][1][1]) or (powerup["position"][1] < closing_boundaries[0][2][1]) or (powerup["position"][1] > closing_boundaries[0][3][1]):
-                        powerups.remove(powerup)
-                print('powerups - ',powerups,file=sys.stderr)
                 nearest_power_up = powerups[0]["position"]
                 message["path"] = nearest_power_up
 
