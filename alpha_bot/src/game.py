@@ -262,6 +262,10 @@ class Game:
             elif powerups:
                 # If there are power-ups, move towards the nearest one
                 # nearest_power_up_id = self.get_nearest_object(ObjectTypes.POWERUP.value)
+                for powerup in powerups:
+                    if (powerup["position"][0] < closing_boundaries[0][0][0]) or (powerup["position"][0] < closing_boundaries[0][1][0]) or (powerup["position"][0] > closing_boundaries[0][2][0]) or (powerup["position"][0] > closing_boundaries[0][3][0]) or (powerup["position"][1] > closing_boundaries[0][0][1]) or (powerup["position"][1] < closing_boundaries[0][1][1]) or (powerup["position"][1] < closing_boundaries[0][2][1]) or (powerup["position"][1] > closing_boundaries[0][3][1]):
+                        powerups.remove(powerup)
+                print('powerups - ',powerups,file=sys.stderr)
                 nearest_power_up = powerups[0]["position"]
                 message["path"] = nearest_power_up                
 
