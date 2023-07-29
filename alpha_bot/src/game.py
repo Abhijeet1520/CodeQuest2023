@@ -161,27 +161,27 @@ class Game:
     
     # Check if point is between tanks
     def is_between(self, point: list, tank1_pos: list, tank2_pos: list) -> bool:
-        total = self.calculate_distance(tank1_pos, tank2_pos)
-        dist = total - (self.calculate_distance(point, tank1_pos) + self.calculate_distance(point, tank2_pos))
-        if 0 <= dist <= 0.01:
+        total = int(self.calculate_distance(tank1_pos, tank2_pos))
+        dist = total - int((self.calculate_distance(point, tank1_pos) + self.calculate_distance(point, tank2_pos)))
+        if dist == 0:
             return True
         
-        for i in range(9):
-            for j in range(9):
-                dist = total - (self.calculate_distance([point[0]+i, point[1]+j], tank1_pos) + self.calculate_distance([point[0]+i, point[1]+j], tank2_pos))
-                if 0 <= dist <= 0.01:
-                    return True
-                dist = total - (self.calculate_distance([point[0]+i, point[1]-j], tank1_pos) + self.calculate_distance([point[0]+i, point[1]-j], tank2_pos))
-                if 0 <= dist <= 0.01:
-                    return True
+        # for i in range(9):
+        #     for j in range(9):
+        #         dist = total - int((self.calculate_distance([point[0]+i, point[1]+j], tank1_pos) + self.calculate_distance([point[0]+i, point[1]+j], tank2_pos)))
+        #         if dist == 0:
+        #             return True
+        #         dist = total - int((self.calculate_distance([point[0]+i, point[1]-j], tank1_pos) + self.calculate_distance([point[0]+i, point[1]-j], tank2_pos)))
+        #         if dist == 0:
+        #             return True
             
-            for j in range(9):
-                dist = total - (self.calculate_distance([point[0]-i, point[1]+j], tank1_pos) + self.calculate_distance([point[0]-i, point[1]+j], tank2_pos))
-                if 0 <= dist <= 0.01:
-                    return True
-                dist = total - (self.calculate_distance([point[0]-i, point[1]-j], tank1_pos) + self.calculate_distance([point[0]-i, point[1]-j], tank2_pos))
-                if 0 <= dist <= 0.01:
-                    return True
+        #     for j in range(9):
+        #         dist = total - int((self.calculate_distance([point[0]-i, point[1]+j], tank1_pos) + self.calculate_distance([point[0]-i, point[1]+j], tank2_pos)))
+        #         if dist == 0:
+        #             return True
+        #         dist = total - int((self.calculate_distance([point[0]-i, point[1]-j], tank1_pos) + self.calculate_distance([point[0]-i, point[1]-j], tank2_pos)))
+        #         if dist == 0:
+        #             return True
         
         return False
       
@@ -263,13 +263,13 @@ class Game:
         self.tick_counter += 1
 
         safe_shoot = True
-        # for wall in walls:
-        #     w = self.is_between(wall["position"], enemy_tank_pos, our_tank_pos)
-        #     print(wall,w, file=sys.stderr)
-        #     if w:
-        #         print("here3", file=sys.stderr)
-        #         safe_shoot = False
-        #         break
+        for wall in walls:
+            
+            # print(wall, file=sys.stderr)
+            if self.is_between(wall["position"], enemy_tank_pos, our_tank_pos):
+                print("here3", file=sys.stderr)
+                safe_shoot = False
+                break
 
         if safe_shoot: message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
 
