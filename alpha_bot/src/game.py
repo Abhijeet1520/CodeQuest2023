@@ -326,8 +326,13 @@ class Game:
 
             # print(wall, file=sys.stderr)
             if self.is_between(wall["position"], enemy_tank_pos, our_tank_pos):
+                is_br_wall = False
+                for br_wall in br_walls:
+                    if self.is_between(br_wall["position"], our_tank_pos, wall["position"]):
+                        is_br_wall = True
+                        break
                 # print("here3", file=sys.stderr)
-                safe_shoot = False
+                safe_shoot = is_br_wall
                 break
 
         if safe_shoot: message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
