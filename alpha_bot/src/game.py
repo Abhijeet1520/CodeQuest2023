@@ -256,7 +256,14 @@ class Game:
             new_angle = self.get_angle(closing_boundary_pos, our_tank_pos) + random.randint(165, 195)
             if new_angle > 360:
                 new_angle = new_angle - 360
-            message["path"] = [870, 400]
+            
+            cent_path = [870, 425]
+            
+            for wall, br_wall in zip(walls, br_walls):
+                while wall["position"] == cent_path and br_wall["position"] == cent_path:
+                    cent_path[1] += 1
+            
+            message["path"] = cent_path
             message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
             print("close to boundary",file=sys.stderr)
             self.swap_waiting(4)
