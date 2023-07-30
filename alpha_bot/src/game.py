@@ -257,11 +257,12 @@ class Game:
             if new_angle > 360:
                 new_angle = new_angle - 360
             
-            cent_path = [870, 425]
+            cent_path = [870, 375]
             
-            for wall, br_wall in zip(walls, br_walls):
-                while wall["position"] == cent_path and br_wall["position"] == cent_path:
-                    cent_path[1] += 1
+            # for wall, br_wall in zip(walls, br_walls):
+            #     while cent_path[1] in range(wall["position"][1], wall["position"][1] - 10) or \
+            #         cent_path[1] in range(br_wall["position"][1], br_wall["position"][1] - 10):
+            #         cent_path[1] -= 10
             
             message["path"] = cent_path
             message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
