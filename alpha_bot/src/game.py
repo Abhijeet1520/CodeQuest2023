@@ -127,7 +127,7 @@ class Game:
 
     # check if tank is close to boundary
     def check_boundary(self,our_tank_pos,closing_boundary_pos):
-        max_distance = 35
+        max_distance = 25
         if abs(our_tank_pos[0]-closing_boundary_pos[0]) < max_distance  or abs(our_tank_pos[1]-closing_boundary_pos[1]) < max_distance:
             return True
         else:
@@ -211,11 +211,11 @@ class Game:
             if not self.check_within_boundary(powerup["position"]):
                 powerups.remove(powerup)
             # only check if reachable if distance is greater than 50
-            elif self.calculate_distance(our_tank_pos, powerup["position"]) > 100:
+            elif self.calculate_distance(our_tank_pos, powerup["position"]) > 150:
                 if not self.is_reachable(powerup["position"]):
                     powerups.remove(powerup)
-            elif powerup["powerup_type"] in ["SPEED","DAMAGE"] and powerup["powerup_type"] in collected_powerup_types:
-                powerups.remove(powerup)
+            # elif powerup["powerup_type"] in ["SPEED","DAMAGE"] and powerup["powerup_type"] in collected_powerup_types:
+            #     powerups.remove(powerup)
         if powerups:
             # Filter out collected powerups and out of bounds powerups
             print(powerups, file=sys.stderr)
@@ -223,9 +223,10 @@ class Game:
             # Sort powerups by distance
             powerups = sorted(powerups, key=lambda p: self.calculate_distance(our_tank_pos, p["position"]))
 
-            powerups_distance_to_self = self.normalize([self.calculate_distance(our_tank_pos, p["position"]) for p in powerups],-4)
+            powerups_distance_to_self = self.normalize([self.calculate_distance(our_tank_pos, p["position"]) for p in powerups],-10)
             powerups_distance_to_enemy = self.normalize([self.calculate_distance(enemy_tank_pos, p["position"]) for p in powerups],1)
-            powerups_distance_to_bound = self.normalize([self.position_to_boundary(p["position"]) for p in powerups],2)
+            # powerups_distance_to_bound = self.normalize([self.position_to_boundary(p["position"]) for p in powerups],2)
+            powerups_distance_to_bound = [2 - val for val in self.normalize([self.position_to_boundary(p["position"]) for p in powerups],2)]
             type_scores = {"SPEED": 5, "DAMAGE": 5, "HEALTH": 3}
             powerups_type_scores = [type_scores[p["powerup_type"]] for p in powerups]
 
@@ -281,7 +282,7 @@ class Game:
             new_angle = self.get_angle(closing_boundary_pos, our_tank_pos) + random.randint(165, 195)
             if new_angle > 360:
                 new_angle = new_angle - 360
-            message["path"] = [870, 400]
+            message["path"] = [870, 375]
             message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
             print("close to boundary",file=sys.stderr)
             self.swap_waiting(4)
