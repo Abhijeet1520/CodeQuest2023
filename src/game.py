@@ -108,6 +108,9 @@ class Game:
         dy = enemy_tank_pos[1] - our_tank_pos[1]
         return (math.degrees(math.atan2(dy, dx)) + 360) % 360
 
+    def normalize(self, array, scale_factor=1):
+        return [float(val)/sum(array) * scale_factor for val in array]
+
     # Swap between waiting and not waiting mode
     def swap_waiting(self, time: int = 2):
         self.waiting = not self.waiting
@@ -121,27 +124,11 @@ class Game:
         dist = total - int((self.calculate_distance(point, tank1_pos) + self.calculate_distance(point, tank2_pos)))
         return dist == 0
 
-        # for i in range(9):
-        #     for j in range(9):
-        #         dist = total - int((self.calculate_distance([point[0]+i, point[1]+j], tank1_pos) + self.calculate_distance([point[0]+i, point[1]+j], tank2_pos)))
-        #         if dist == 0:
-        #             return True
-        #         dist = total - int((self.calculate_distance([point[0]+i, point[1]-j], tank1_pos) + self.calculate_distance([point[0]+i, point[1]-j], tank2_pos)))
-        #         if dist == 0:
-        #             return True
-
-        #     for j in range(9):
-        #         dist = total - int((self.calculate_distance([point[0]-i, point[1]+j], tank1_pos) + self.calculate_distance([point[0]-i, point[1]+j], tank2_pos)))
-        #         if dist == 0:
-        #             return True
-        #         dist = total - int((self.calculate_distance([point[0]-i, point[1]-j], tank1_pos) + self.calculate_distance([point[0]-i, point[1]-j], tank2_pos)))
-        #         if dist == 0:
-        #             return True
-
 
     # check if tank is close to boundary
     def check_boundary(self,our_tank_pos,closing_boundary_pos):
-        if abs(our_tank_pos[0]-closing_boundary_pos[0]) < 100  or abs(our_tank_pos[1]-closing_boundary_pos[1]) < 100:
+        max_distance = 25
+        if abs(our_tank_pos[0]-closing_boundary_pos[0]) < max_distance  or abs(our_tank_pos[1]-closing_boundary_pos[1]) < max_distance:
             return True
         else:
             return False
@@ -156,30 +143,27 @@ class Game:
     def get_closest_boundary_pos(self,our_tank_pos):
         closing_boundaries = self.get_closing_boundaries_positions()
         print('passed - ',closing_boundaries[0],file=sys.stderr)
-        # get the boundary to which the tank is closest
-        bound = closing_boundaries[0]
-        curr = abs(self.calculate_distance(our_tank_pos,closing_boundaries[0]))
-        for boundary in closing_boundaries:
-            if abs(self.calculate_distance(our_tank_pos,boundary)) < curr:
-                curr = abs(self.calculate_distance(our_tank_pos,boundary))
-                bound = boundary
-        return bound
+
+        # Get the boundary to which the tank is closest
+        closest_boundary = min(closing_boundaries, key=lambda boundary: self.calculate_distance(our_tank_pos, boundary))
+        return closest_boundary
 
     def check_within_boundary(self, position):
         """Return True if the position is within the closing boundaries."""
 
         closing_boundaries = self.get_closing_boundaries_positions()
-        if  (position[0] < closing_boundaries[0][0]) or \
-            (position[0] < closing_boundaries[1][0]) or \
-            (position[0] > closing_boundaries[2][0]) or \
-            (position[0] > closing_boundaries[3][0]) or \
-            (position[1] > closing_boundaries[0][1]) or \
-            (position[1] < closing_boundaries[1][1]) or \
-            (position[1] < closing_boundaries[2][1]) or \
-            (position[1] > closing_boundaries[3][1]):
-            return False
-        else:
+
+        # Get the minimum and maximum x and y coordinates of the boundaries
+        min_x = min(boundary[0] for boundary in closing_boundaries)
+        max_x = max(boundary[0] for boundary in closing_boundaries)
+        min_y = min(boundary[1] for boundary in closing_boundaries)
+        max_y = max(boundary[1] for boundary in closing_boundaries)
+
+        # Check if the position is within the boundaries
+        if min_x < position[0] < max_x and min_y < position[1] < max_y:
             return True
+        else:
+            return False
 
     def calculate_boundary(self):
         boundaries = [obj for obj in self.objects.values() if obj["type"] == ObjectTypes.CLOSING_BOUNDARY.value]
@@ -198,6 +182,8 @@ class Game:
 
     def is_reachable(self, position):
         player_velocity = 100
+        if "SPEED" in self.objects[self.tank_id]["powerups"]:
+            player_velocity = 200
         boundary_velocity = 10
 
         player_to_position = self.calculate_distance(self.objects[self.tank_id]["position"], position)
@@ -208,6 +194,52 @@ class Game:
         time_for_boundary = position_to_boundary / boundary_velocity
 
         return time_for_player < time_for_boundary
+
+    def get_powerup(self):
+        powerups = []
+        our_tank_pos = self.objects[self.tank_id]["position"]
+        enemy_tank_pos = self.objects[self.enemy_tank_id]["position"]
+
+        collected_powerup_types = self.objects[self.tank_id]["powerups"]
+
+
+        for game_object in self.objects.values():
+            if game_object["type"] == ObjectTypes.POWERUP.value:
+                powerups.append(game_object)
+
+        for powerup in powerups:
+            if not self.check_within_boundary(powerup["position"]):
+                powerups.remove(powerup)
+            # only check if reachable if distance is greater than 50
+            elif self.calculate_distance(our_tank_pos, powerup["position"]) > 150:
+                if not self.is_reachable(powerup["position"]):
+                    powerups.remove(powerup)
+            # elif powerup["powerup_type"] in ["SPEED","DAMAGE"] and powerup["powerup_type"] in collected_powerup_types:
+            #     powerups.remove(powerup)
+        if powerups:
+            # Filter out collected powerups and out of bounds powerups
+            print(powerups, file=sys.stderr)
+
+            # Sort powerups by distance
+            powerups = sorted(powerups, key=lambda p: self.calculate_distance(our_tank_pos, p["position"]))
+
+            powerups_distance_to_self = self.normalize([self.calculate_distance(our_tank_pos, p["position"]) for p in powerups],-10)
+            powerups_distance_to_enemy = self.normalize([self.calculate_distance(enemy_tank_pos, p["position"]) for p in powerups],1)
+            # powerups_distance_to_bound = self.normalize([self.position_to_boundary(p["position"]) for p in powerups],2)
+            powerups_distance_to_bound = [2 - val for val in self.normalize([self.position_to_boundary(p["position"]) for p in powerups],2)]
+            type_scores = {"SPEED": 5, "DAMAGE": 5, "HEALTH": 3}
+            powerups_type_scores = [type_scores[p["powerup_type"]] for p in powerups]
+
+
+            powerups_total_scores = [sum(scores) for scores in zip(powerups_distance_to_self, powerups_distance_to_enemy, powerups_distance_to_bound, powerups_type_scores)]
+
+            print('powerups - ', powerups, file=sys.stderr)
+            print('powerup_type - ', [p['powerup_type'] for p in powerups], file=sys.stderr)
+            print('powerups_total_scores - ', powerups_total_scores, file=sys.stderr)
+
+            return powerups[powerups_total_scores.index(max(powerups_total_scores))]
+
+        return None
 
     def respond_to_turn(self):
         """
@@ -228,17 +260,11 @@ class Game:
                 br_walls.append(game_object)
 
         closing_boundaries = self.get_closing_boundaries_positions()
-        # print(closing_boundaries,file=sys.stderr)
+        print(closing_boundaries,file=sys.stderr)
 
-        # Get all power-ups
-        powerups = []
-        for game_object in self.objects.values():
-            if game_object["type"] == ObjectTypes.POWERUP.value:
-                powerups.append(game_object)
-        for powerup in powerups:
-            if not (self.check_within_boundary(powerup["position"]) and self.is_reachable(powerup["position"])):
-                powerups.remove(powerup)
-        print('powerups - ',powerups,file=sys.stderr)
+        # Get power-up
+        powerup = self.get_powerup()
+        print('powerup found - ',powerup,file=sys.stderr)
         # print(powerups,file=sys.stderr)
 
         # Get our tank's position
@@ -256,22 +282,14 @@ class Game:
             new_angle = self.get_angle(closing_boundary_pos, our_tank_pos) + random.randint(165, 195)
             if new_angle > 360:
                 new_angle = new_angle - 360
-            
-            cent_path = [870, 375]
-            
-            # for wall, br_wall in zip(walls, br_walls):
-            #     while cent_path[1] in range(wall["position"][1], wall["position"][1] - 10) or \
-            #         cent_path[1] in range(br_wall["position"][1], br_wall["position"][1] - 10):
-            #         cent_path[1] -= 10
-            
-            message["path"] = cent_path
+            message["path"] = [870, 375]
             message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
             print("close to boundary",file=sys.stderr)
             self.swap_waiting(4)
 
         elif not self.waiting:
             # print(self.tick_counter, self.change_tick_count, file=sys.stderr)
-            if self.tick_counter >= self.change_tick_count and not powerups:
+            if self.tick_counter >= self.change_tick_count and not powerup:
                 # print("here", file=sys.stderr)
                 face_angle = self.get_angle(enemy_tank_pos, our_tank_pos)
                 change_dir = random.choice((face_angle + 45, face_angle - 45))
@@ -281,9 +299,9 @@ class Game:
                 self.swap_waiting()
 
 
-            elif powerups:
+            elif powerup:
                 # If there are power-ups, move towards the nearest one
-                message["path"] = powerups[0]["position"]
+                message["path"] = powerup["position"]
 
             else:
                 # If there are no power-ups, move towards the enemy tank and shoot at it
@@ -319,5 +337,8 @@ class Game:
                 break
 
         if safe_shoot: message["shoot"] = self.get_angle(enemy_tank_pos, our_tank_pos)
+
+        if message.get("path",None) == None and message.get("move",None) == None:
+            message["path"] = enemy_tank_pos
 
         comms.post_message(message)
