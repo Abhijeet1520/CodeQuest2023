@@ -26,8 +26,6 @@ class Game:
         # We will store all game objects here
         self.objects = {}
 
-        # self.current_destination = [mid_x,mid_y] #TODO
-
         self.tick_counter = 0
         self.change_tick_count = 5
         self.waiting = False
@@ -89,7 +87,6 @@ class Game:
         # NOTE: you might want to do some additional logic here. For example check if a new bullet has been shot or a
         # new powerup is now spawned, etc.
         self.objects.update(self.current_turn_message["message"]["updated_objects"])
-        # print(self.objects , file=sys.stderr)
 
         return True
 
@@ -135,7 +132,6 @@ class Game:
 
     # get closing boundary position
     def get_closing_boundaries_positions(self):
-        closing_boundaries = []
         for game_object in self.objects.values():
             if game_object["type"] == ObjectTypes.CLOSING_BOUNDARY.value:
                 return game_object['position']
@@ -200,9 +196,6 @@ class Game:
         our_tank_pos = self.objects[self.tank_id]["position"]
         enemy_tank_pos = self.objects[self.enemy_tank_id]["position"]
 
-        collected_powerup_types = self.objects[self.tank_id]["powerups"]
-
-
         for game_object in self.objects.values():
             if game_object["type"] == ObjectTypes.POWERUP.value:
                 powerups.append(game_object)
@@ -214,8 +207,7 @@ class Game:
             elif self.calculate_distance(our_tank_pos, powerup["position"]) > 150:
                 if not self.is_reachable(powerup["position"]):
                     powerups.remove(powerup)
-            # elif powerup["powerup_type"] in ["SPEED","DAMAGE"] and powerup["powerup_type"] in collected_powerup_types:
-            #     powerups.remove(powerup)
+            
         if powerups:
             # Filter out collected powerups and out of bounds powerups
             print(powerups, file=sys.stderr)
@@ -225,7 +217,6 @@ class Game:
 
             powerups_distance_to_self = self.normalize([self.calculate_distance(our_tank_pos, p["position"]) for p in powerups],-10)
             powerups_distance_to_enemy = self.normalize([self.calculate_distance(enemy_tank_pos, p["position"]) for p in powerups],1)
-            # powerups_distance_to_bound = self.normalize([self.position_to_boundary(p["position"]) for p in powerups],2)
             powerups_distance_to_bound = [2 - val for val in self.normalize([self.position_to_boundary(p["position"]) for p in powerups],2)]
             type_scores = {"SPEED": 5, "DAMAGE": 5, "HEALTH": 3}
             powerups_type_scores = [type_scores[p["powerup_type"]] for p in powerups]
@@ -265,7 +256,6 @@ class Game:
         # Get power-up
         powerup = self.get_powerup()
         print('powerup found - ',powerup,file=sys.stderr)
-        # print(powerups,file=sys.stderr)
 
         # Get our tank's position
         our_tank = self.objects[self.tank_id]
@@ -276,8 +266,7 @@ class Game:
         enemy_tank_pos = enemy_tank["position"]
 
         closing_boundary_pos = self.get_closest_boundary_pos(our_tank_pos)
-        # print('boundary - ',closing_b,file=sys.stderr)
-        # closing_boundary_pos = closing_b["position"]
+        
         if self.check_boundary(our_tank_pos,closing_boundary_pos):
             new_angle = self.get_angle(closing_boundary_pos, our_tank_pos) + random.randint(165, 195)
             if new_angle > 360:
@@ -288,9 +277,7 @@ class Game:
             self.swap_waiting(4)
 
         elif not self.waiting:
-            # print(self.tick_counter, self.change_tick_count, file=sys.stderr)
             if self.tick_counter >= self.change_tick_count and not powerup:
-                # print("here", file=sys.stderr)
                 face_angle = self.get_angle(enemy_tank_pos, our_tank_pos)
                 change_dir = random.choice((face_angle + 45, face_angle - 45))
 
@@ -315,9 +302,7 @@ class Game:
                     message["move"] = next_angle if next_angle < 360 else next_angle - 360
                     self.swap_waiting()
         else:
-            # print(self.tick_counter, self.change_tick_count, file=sys.stderr)
             if self.tick_counter >= self.change_tick_count:
-                # print("here2", file=sys.stderr)
                 self.swap_waiting()
 
         self.tick_counter += 1
@@ -325,14 +310,12 @@ class Game:
         safe_shoot = True
         for wall in walls:
 
-            # print(wall, file=sys.stderr)
             if self.is_between(wall["position"], enemy_tank_pos, our_tank_pos):
                 is_br_wall = False
                 for br_wall in br_walls:
                     if self.is_between(br_wall["position"], our_tank_pos, wall["position"]):
                         is_br_wall = True
                         break
-                # print("here3", file=sys.stderr)
                 safe_shoot = is_br_wall
                 break
 
